@@ -1,6 +1,6 @@
 # GameHub
 
-##Team members
+## Team members
 - Riddhi Mahajan
 - Rohit Vijai
 
