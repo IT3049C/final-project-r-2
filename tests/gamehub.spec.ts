@@ -15,6 +15,9 @@ test.describe("Game Hub", () => {
     await expect(page.getByTestId("landing")).toBeVisible();
     await expect(page.getByTestId("game-card-rps")).toBeVisible();
     await expect(page.getByTestId("game-card-typing")).toBeVisible();
+    await expect(page.getByTestId("game-card-wordle")).toBeVisible();
+    await expect(page.getByTestId("game-card-ttt")).toBeVisible();
+    await expect(page.getByTestId("game-card-memory")).toBeVisible();
     await expect(page.getByTestId("developers-section")).toBeVisible();
     await expect(page.getByTestId("developer-riddhi")).toHaveText("Riddhi Mahajan");
     await expect(page.getByTestId("developer-rohit")).toHaveText("Rohit Vijai");
@@ -51,6 +54,18 @@ test.describe("Game Hub", () => {
     await page.goto("/games/typing-speed");
     await expect(page.getByTestId("player-greeting")).toContainText("Sam");
     await expect(page.getByTestId("typing-player-label")).toContainText("Sam");
+
+    await page.goto("/games/wordle");
+    await expect(page.getByTestId("player-greeting")).toContainText("Sam");
+    await expect(page.getByTestId("wordle-player-label")).toContainText("Sam");
+
+    await page.goto("/games/tic-tac-toe");
+    await expect(page.getByTestId("player-greeting")).toContainText("Sam");
+    await expect(page.getByTestId("ttt-player-label")).toContainText("Sam");
+
+    await page.goto("/games/memory-cards");
+    await expect(page.getByTestId("player-greeting")).toContainText("Sam");
+    await expect(page.getByTestId("memory-player-label")).toContainText("Sam");
   });
 
   test("Rock Paper Scissors: playing a round updates the board", async ({ page, context }) => {
@@ -90,6 +105,42 @@ test.describe("Game Hub", () => {
     await expect(page.getByTestId("typing-reset")).toBeVisible();
   });
 
+  test("Wordle: can submit a valid guess", async ({ page, context }) => {
+    await context.addInitScript((key) => {
+      localStorage.setItem(key, "Wordle Tester");
+    }, PLAYER_KEY);
+    await page.goto("/games/wordle");
+
+    await page.getByTestId("wordle-input").fill("react");
+    await page.getByTestId("wordle-submit").click();
+
+    await expect(page.getByTestId("wordle-grid")).toBeVisible();
+    await expect(page.getByText("R").first()).toBeVisible();
+  });
+
+  test("Tic Tac Toe: first move updates status", async ({ page, context }) => {
+    await context.addInitScript((key) => {
+      localStorage.setItem(key, "TTT Tester");
+    }, PLAYER_KEY);
+    await page.goto("/games/tic-tac-toe");
+
+    await page.getByTestId("ttt-cell-0").click();
+    await expect(page.getByTestId("ttt-cell-0")).toHaveText("X");
+    await expect(page.getByTestId("ttt-status")).toContainText("Turn: O");
+  });
+
+  test("Memory Cards: can flip cards and increment moves", async ({ page, context }) => {
+    await context.addInitScript((key) => {
+      localStorage.setItem(key, "Memory Tester");
+    }, PLAYER_KEY);
+    await page.goto("/games/memory-cards");
+
+    await expect(page.getByTestId("memory-moves")).toHaveText("0");
+    await page.getByTestId("memory-card-0").click();
+    await page.getByTestId("memory-card-1").click();
+    await expect(page.getByTestId("memory-moves")).toHaveText("1");
+  });
+
   test("navigation from home to each game works", async ({ page, context }) => {
     await context.addInitScript((key) => {
       localStorage.setItem(key, "Nav");
@@ -104,5 +155,20 @@ test.describe("Game Hub", () => {
     await page.getByTestId("game-card-typing").click();
     await expect(page).toHaveURL(/typing-speed/);
     await expect(page.getByTestId("typing-page")).toBeVisible();
+
+    await page.getByRole("link", { name: "All games" }).click();
+    await page.getByTestId("game-card-wordle").click();
+    await expect(page).toHaveURL(/wordle/);
+    await expect(page.getByTestId("wordle-page")).toBeVisible();
+
+    await page.getByRole("link", { name: "All games" }).click();
+    await page.getByTestId("game-card-ttt").click();
+    await expect(page).toHaveURL(/tic-tac-toe/);
+    await expect(page.getByTestId("ttt-page")).toBeVisible();
+
+    await page.getByRole("link", { name: "All games" }).click();
+    await page.getByTestId("game-card-memory").click();
+    await expect(page).toHaveURL(/memory-cards/);
+    await expect(page.getByTestId("memory-page")).toBeVisible();
   });
 });

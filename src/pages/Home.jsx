@@ -17,6 +17,30 @@ const games = [
     icon: "⌨️",
     testId: "game-card-typing",
   },
+  {
+    id: "wordle",
+    title: "Wordle",
+    path: "/games/wordle",
+    blurb: "Guess a hidden five-letter word in six tries with colored hints each round.",
+    icon: "W",
+    testId: "game-card-wordle",
+  },
+  {
+    id: "tic-tac-toe",
+    title: "Tic Tac Toe",
+    path: "/games/tic-tac-toe",
+    blurb: "Take turns on a 3x3 board. Connect three in a row before your opponent.",
+    icon: "#",
+    testId: "game-card-ttt",
+  },
+  {
+    id: "memory-cards",
+    title: "Memory Cards",
+    path: "/games/memory-cards",
+    blurb: "Flip two cards at a time, match all pairs, and finish with the fewest moves.",
+    icon: "🃏",
+    testId: "game-card-memory",
+  },
 ];
 
 export function Home() {
