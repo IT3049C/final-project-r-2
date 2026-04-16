@@ -1,5 +1,9 @@
 # GameHub
 
+## Team members
+- Riddhi Mahajan
+- Rohit Vijai
+
 ## Checklist
 
 - [ ] frequent commits to github.
