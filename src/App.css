@@ -94,8 +94,9 @@
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: rgba(5, 8, 14, 0.72);
-  backdrop-filter: blur(6px);
+  /* Lighter overlay so first-time visitors still see the game grid behind the dialog */
+  background: rgba(5, 8, 14, 0.48);
+  backdrop-filter: blur(4px);
 }
 
 .name-modal-card {

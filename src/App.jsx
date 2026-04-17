@@ -10,10 +10,20 @@ import { TicTacToe } from "./pages/TicTacToe.jsx";
 import { MemoryCards } from "./pages/MemoryCards.jsx";
 import "./App.css";
 
+/**
+ * Vite sets `import.meta.env.BASE_URL` to `/` at the site root. React Router expects
+ * `basename` to be a path segment like `/myapp` or omitted — a bare `/` breaks routing.
+ */
+function viteRouterBasename() {
+  const base = import.meta.env.BASE_URL;
+  if (!base || base === "/" || base === "./") return undefined;
+  return base.endsWith("/") ? base.slice(0, -1) : base;
+}
+
 export default function App() {
   return (
     <PlayerProvider>
-      <BrowserRouter basename={import.meta.env.BASE_URL}>
+      <BrowserRouter basename={viteRouterBasename()}>
         <NameModal />
         <Routes>
           <Route path="/" element={<Layout />}>

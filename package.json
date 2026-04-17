@@ -9,6 +9,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "preview:test": "vite preview --port 5191 --strictPort",
     "test": "playwright test"
   },
   "dependencies": {

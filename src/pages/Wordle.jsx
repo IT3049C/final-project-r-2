@@ -19,8 +19,9 @@ const FALLBACK_VALID_GUESSES = new Set([
   "sugar",
 ]);
 
-const WORDS_URL = new URL("wordle-words.txt", import.meta.env.BASE_URL).href;
-const ANSWERS_URL = new URL("wordle-answers.txt", import.meta.env.BASE_URL).href;
+/** Vite `BASE_URL` is a path like `/` or `/repo/` — do not pass it alone to `new URL()` as a base (invalid in the browser). */
+const WORDS_URL = `${import.meta.env.BASE_URL}wordle-words.txt`;
+const ANSWERS_URL = `${import.meta.env.BASE_URL}wordle-answers.txt`;
 
 const MAX_GUESSES = 6;
 const WORD_LEN = 5;
