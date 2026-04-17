@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePlayer } from "../context/PlayerContext.jsx";
 
+/** Used only if `public/wordle-*.txt` fails to load (offline build preview, etc.). */
 const FALLBACK_WORDS = ["react", "vivid", "coder", "input", "route", "state", "hooks", "pixel"];
 const FALLBACK_VALID_GUESSES = new Set([
   ...FALLBACK_WORDS,
@@ -17,7 +18,10 @@ const FALLBACK_VALID_GUESSES = new Set([
   "brand",
   "sugar",
 ]);
-const WORD_CATALOGUE_API = "https://api.datamuse.com/words?sp=?????&max=1000";
+
+const WORDS_URL = new URL("wordle-words.txt", import.meta.env.BASE_URL).href;
+const ANSWERS_URL = new URL("wordle-answers.txt", import.meta.env.BASE_URL).href;
+
 const MAX_GUESSES = 6;
 const WORD_LEN = 5;
 const REVEAL_STEP_MS = 220;
@@ -50,14 +54,22 @@ function evaluateGuess(guess, answer) {
   return result;
 }
 
-function randomWord() {
-  return FALLBACK_WORDS[Math.floor(Math.random() * FALLBACK_WORDS.length)];
+function randomFrom(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+function parseWordLines(text) {
+  return text
+    .split(/\r?\n/)
+    .map((s) => s.trim().toLowerCase())
+    .filter((w) => /^[a-z]{5}$/.test(w));
 }
 
 export function Wordle() {
   const { playerName } = usePlayer();
-  const [answer, setAnswer] = useState(() => randomWord());
-  const [catalogueWords, setCatalogueWords] = useState([]);
+  const [allowedList, setAllowedList] = useState(null);
+  const [answerList, setAnswerList] = useState(null);
+  const [answer, setAnswer] = useState(() => randomFrom(FALLBACK_WORDS));
   const [guesses, setGuesses] = useState([]);
   const [current, setCurrent] = useState("");
   const [error, setError] = useState("");
@@ -77,50 +89,52 @@ export function Wordle() {
   useEffect(() => {
     const controller = new AbortController();
 
-    async function loadCatalogue() {
+    async function loadWordLists() {
       try {
-        const res = await fetch(WORD_CATALOGUE_API, { signal: controller.signal });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!Array.isArray(data)) return;
+        const [wRes, aRes] = await Promise.all([
+          fetch(WORDS_URL, { signal: controller.signal }),
+          fetch(ANSWERS_URL, { signal: controller.signal }),
+        ]);
+        if (!wRes.ok || !aRes.ok) return;
 
-        const words = Array.from(
-          new Set(
-            data
-              .map((item) => String(item?.word ?? "").toLowerCase())
-              .filter((word) => /^[a-z]{5}$/.test(word))
-          )
-        );
+        const [wText, aText] = await Promise.all([wRes.text(), aRes.text()]);
+        const allowed = parseWordLines(wText);
+        const answers = parseWordLines(aText);
 
-        if (words.length > 0) {
-          setCatalogueWords(words);
+        if (allowed.length > 0) {
+          setAllowedList(allowed);
+        }
+        if (answers.length > 0) {
+          setAnswerList(answers);
         }
       } catch {
-        // Silent fallback to bundled words if the API is unavailable.
+        /* keep bundled fallbacks */
       }
     }
 
-    loadCatalogue();
+    loadWordLists();
     return () => controller.abort();
   }, []);
 
   const validGuesses = useMemo(() => {
     const merged = new Set(FALLBACK_VALID_GUESSES);
-    for (const word of catalogueWords) merged.add(word);
+    if (allowedList) {
+      for (const word of allowedList) merged.add(word);
+    }
     return merged;
-  }, [catalogueWords]);
+  }, [allowedList]);
 
   const answerPool = useMemo(
-    () => (catalogueWords.length > 0 ? catalogueWords : FALLBACK_WORDS),
-    [catalogueWords]
+    () => (answerList && answerList.length > 0 ? answerList : FALLBACK_WORDS),
+    [answerList],
   );
 
   useEffect(() => {
-    if (catalogueWords.length === 0) return;
-    if (!catalogueWords.includes(answer)) {
-      setAnswer(catalogueWords[Math.floor(Math.random() * catalogueWords.length)]);
-    }
-  }, [answer, catalogueWords]);
+    if (!answerList || answerList.length === 0) return;
+    setAnswer((prev) =>
+      answerList.includes(prev) ? prev : randomFrom(answerList),
+    );
+  }, [answerList]);
 
   const won = guesses.some((g) => g.word === answer);
   const lost = guesses.length >= MAX_GUESSES && !won;
@@ -184,7 +198,7 @@ export function Wordle() {
   const reset = () => {
     if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
     if (shakeTimerRef.current) clearTimeout(shakeTimerRef.current);
-    setAnswer(answerPool[Math.floor(Math.random() * answerPool.length)]);
+    setAnswer(randomFrom(answerPool));
     setGuesses([]);
     setCurrent("");
     setError("");
@@ -204,13 +218,12 @@ export function Wordle() {
 
       <div className="wordle-panel">
         <p className="wordle-rules">
-          Guess the five-letter word in {MAX_GUESSES} tries. Green is correct, amber is in the
-          word but wrong position.
+          Guess the five-letter word in {MAX_GUESSES} tries. Green is correct, amber is in the word
+          but wrong position. Guesses may be any common English five-letter word in the dictionary.
         </p>
 
         <div className="wordle-grid" aria-label="Wordle board" data-testid="wordle-grid">
           {rows.map((row, r) => (
-            // Keep guessed rows colored after reveal; active reveal row gets its color mid-flip.
             <div
               className={`wordle-row${revealingRow === r ? " wordle-row--reveal" : ""}${
                 shakeRow === r ? " wordle-row--shake" : ""
