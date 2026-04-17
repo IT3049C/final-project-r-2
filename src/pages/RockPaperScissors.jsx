@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { RockPaperScissorsMultiplayer } from "../components/RockPaperScissorsMultiplayer.jsx";
 import { usePlayer } from "../context/PlayerContext.jsx";
 
 const choices = [
@@ -21,6 +22,7 @@ function pickWinner(a, b) {
 
 export function RockPaperScissors() {
   const { playerName } = usePlayer();
+  const [mode, setMode] = useState("solo");
   const [playerChoice, setPlayerChoice] = useState(null);
   const [computerChoice, setComputerChoice] = useState(null);
   const [lastResult, setLastResult] = useState(null);
@@ -60,11 +62,44 @@ export function RockPaperScissors() {
       <header className="game-page-header">
         <h1 className="game-page-title">Rock Paper Scissors</h1>
         <p className="game-page-player" data-testid="rps-player-label">
-          {playerName ? `${playerName} vs Computer` : "You vs Computer"}
+          {mode === "solo"
+            ? playerName
+              ? `${playerName} vs Computer`
+              : "You vs Computer"
+            : playerName
+              ? `${playerName} — online`
+              : "Online — set your name in the header"}
         </p>
       </header>
 
-      <div className="rps-board">
+      <div className="rps-mode" role="tablist" aria-label="Game mode">
+        <button
+          type="button"
+          className={`rps-mode-btn${mode === "solo" ? " rps-mode-btn--active" : ""}`}
+          role="tab"
+          aria-selected={mode === "solo"}
+          onClick={() => setMode("solo")}
+          data-testid="rps-mode-solo"
+        >
+          vs Computer
+        </button>
+        <button
+          type="button"
+          className={`rps-mode-btn${mode === "online" ? " rps-mode-btn--active" : ""}`}
+          role="tab"
+          aria-selected={mode === "online"}
+          onClick={() => setMode("online")}
+          data-testid="rps-mode-online"
+        >
+          Online (2 players)
+        </button>
+      </div>
+
+      {mode === "online" ? (
+        <RockPaperScissorsMultiplayer />
+      ) : null}
+
+      <div className={`rps-board${mode === "online" ? " rps-board--hidden" : ""}`}>
         <div className="rps-score">
           <div>
             <span className="rps-score-label">You</span>
