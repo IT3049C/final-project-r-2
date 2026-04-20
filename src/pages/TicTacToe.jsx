@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { usePlayer } from "../context/PlayerContext.jsx";
 import { useGameRoom } from "../hooks/useGameRoom.js";
 
@@ -22,6 +22,65 @@ function getWinner(cells) {
     }
   }
   return null;
+}
+
+// ── Minimax AI ────────────────────────────────────────────────────────────────
+// The computer always plays "O". Minimax exhaustively searches the 3×3 tree,
+// making the computer unbeatable. The best it can achieve against it is a draw.
+
+/**
+ * Score a board position from the computer's perspective.
+ * +10  computer ("O") wins
+ * -10  human ("X") wins
+ *  0   draw
+ */
+function minimax(cells, isMaximising) {
+  const w = getWinner(cells);
+  if (w === "O") return 10;
+  if (w === "X") return -10;
+  if (cells.every((c) => c !== null)) return 0;
+
+  if (isMaximising) {
+    // Computer's turn — pick the move with the highest score.
+    let best = -Infinity;
+    for (let i = 0; i < 9; i++) {
+      if (!cells[i]) {
+        cells[i] = "O";
+        best = Math.max(best, minimax(cells, false));
+        cells[i] = null;
+      }
+    }
+    return best;
+  } else {
+    // Human's turn — assume they play optimally (lowest score for computer).
+    let best = Infinity;
+    for (let i = 0; i < 9; i++) {
+      if (!cells[i]) {
+        cells[i] = "X";
+        best = Math.min(best, minimax(cells, true));
+        cells[i] = null;
+      }
+    }
+    return best;
+  }
+}
+
+/** Return the index of the computer's best move given the current board. */
+function getBestMove(cells) {
+  let bestScore = -Infinity;
+  let bestMove = -1;
+  for (let i = 0; i < 9; i++) {
+    if (!cells[i]) {
+      cells[i] = "O";
+      const score = minimax(cells, false);
+      cells[i] = null;
+      if (score > bestScore) {
+        bestScore = score;
+        bestMove = i;
+      }
+    }
+  }
+  return bestMove;
 }
 
 /**
@@ -49,21 +108,89 @@ const INITIAL_STATE = {
 export function TicTacToe() {
   const { playerName } = usePlayer();
 
-  // useGameRoom handles all networking: creating a room, polling the server
-  // every second, and pushing updated state after each move.
+  // ── Mode selection ────────────────────────────────────────────────────────
+  // null       → lobby (choose mode)
+  // "computer" → single-player vs minimax AI (pure local state, no network)
+  // "multi"    → online multiplayer via Game Room API
+  const [mode, setMode] = useState(null);
+
+  // ── Computer-mode state ───────────────────────────────────────────────────
+  // All state lives locally; nothing is sent to the server.
+  const [cpuCells, setCpuCells] = useState(Array(9).fill(null));
+  const [cpuTurn, setCpuTurn] = useState("X"); // human is always X
+  const [cpuScore, setCpuScore] = useState({ x: 0, o: 0, draws: 0 });
+  const [cpuThinking, setCpuThinking] = useState(false); // brief lock while AI "thinks"
+
+  const cpuWinner = getWinner(cpuCells);
+  const cpuDraw = !cpuWinner && cpuCells.every((c) => c !== null);
+  const cpuOver = Boolean(cpuWinner) || cpuDraw;
+
+  // ── Computer makes its move automatically after the human plays ───────────
+  // A short setTimeout gives a natural 350 ms "thinking" pause.
+  useEffect(() => {
+    if (mode !== "computer") return;
+    if (cpuOver || cpuTurn !== "O") return;
+
+    setCpuThinking(true);
+    const id = setTimeout(() => {
+      const move = getBestMove([...cpuCells]);
+      if (move === -1) return;
+
+      const next = [...cpuCells];
+      next[move] = "O";
+
+      const nextWinner = getWinner(next);
+      const nextDraw = !nextWinner && next.every((c) => c !== null);
+
+      setCpuCells(next);
+      if (nextWinner === "O") setCpuScore((s) => ({ ...s, o: s.o + 1 }));
+      else if (nextDraw) setCpuScore((s) => ({ ...s, draws: s.draws + 1 }));
+      else setCpuTurn("X");
+
+      setCpuThinking(false);
+    }, 350);
+
+    return () => clearTimeout(id);
+  }, [mode, cpuCells, cpuTurn, cpuOver]);
+
+  // ── Human move in computer mode ───────────────────────────────────────────
+  const handleCpuPlay = useCallback(
+    (index) => {
+      if (cpuOver || cpuCells[index] || cpuTurn !== "X" || cpuThinking) return;
+
+      const next = [...cpuCells];
+      next[index] = "X";
+
+      const nextWinner = getWinner(next);
+      const nextDraw = !nextWinner && next.every((c) => c !== null);
+
+      setCpuCells(next);
+      if (nextWinner === "X") setCpuScore((s) => ({ ...s, x: s.x + 1 }));
+      else if (nextDraw) setCpuScore((s) => ({ ...s, draws: s.draws + 1 }));
+      else setCpuTurn("O"); // triggers the AI useEffect above
+    },
+    [cpuCells, cpuTurn, cpuOver, cpuThinking]
+  );
+
+  const handleCpuReset = () => {
+    setCpuCells(Array(9).fill(null));
+    setCpuTurn("X");
+  };
+
+  const handleCpuResetScores = () => {
+    setCpuCells(Array(9).fill(null));
+    setCpuTurn("X");
+    setCpuScore({ x: 0, o: 0, draws: 0 });
+  };
+
+  // ── Multiplayer state (Game Room API) ─────────────────────────────────────
   const { roomId, gameState, isLoading, error, startRoom, joinRoom, pushState } =
     useGameRoom({ refetchInterval: 1000 });
 
-  // myMark ("X" or "O") lives only in local state — it never goes to the server.
-  // It tells this browser which player it is so we can block moves on the wrong turn.
   const [myMark, setMyMark] = useState(null);
-
-  // Controlled input for the "Join Room" text field.
   const [joinCode, setJoinCode] = useState("");
   const [joinError, setJoinError] = useState("");
 
-  // ── Derive everything from the server snapshot ──────────────────────────────
-  // Falling back to safe defaults until the first poll returns.
   const cells = gameState?.cells ?? Array(9).fill(null);
   const turn = gameState?.turn ?? "X";
   const winner = gameState?.winner ?? null;
@@ -71,44 +198,24 @@ export function TicTacToe() {
   const score = gameState?.score ?? { x: 0, o: 0, draws: 0 };
   const players = gameState?.players ?? [];
 
-  // The game can only be played once both seats are filled.
   const gameReady = players.length === 2;
   const gameOver = Boolean(winner) || isDraw;
 
-  // ── Auto-registration effect ─────────────────────────────────────────────────
-  // Runs every time the polled gameState changes.  Figures out which mark this
-  // browser should play, and — for the joining player — writes their name into
-  // the shared players array so the creator's screen updates too.
+  // Auto-registration: figures out this browser's mark and registers as O when joining.
   useEffect(() => {
-    // Nothing to do until we have a snapshot or if we already know our mark.
-    if (!gameState || myMark) return;
-
+    if (mode !== "multi" || !gameState || myMark) return;
     const existing = gameState.players ?? [];
 
-    // Reconnect path: our name is already in the players list (e.g. after a
-    // page refresh).  Just restore the local mark without writing to the server.
     const me = existing.find((p) => p.name === (playerName || "Player"));
-    if (me) {
-      setMyMark(me.mark);
-      return;
-    }
+    if (me) { setMyMark(me.mark); return; }
 
-    // Join path: there is exactly one player (the creator) and it is not us.
-    // Register ourselves as O and push the updated players list to the server
-    // so both clients know the game is ready to start.
     if (existing.length === 1 && existing[0].name !== (playerName || "Player")) {
       const name = playerName || "Player 2";
       setMyMark("O");
-      pushState({
-        ...gameState,
-        players: [...existing, { name, mark: "O" }],
-      });
+      pushState({ ...gameState, players: [...existing, { name, mark: "O" }] });
     }
-  }, [gameState, myMark, playerName, pushState]);
+  }, [mode, gameState, myMark, playerName, pushState]);
 
-  // ── Room creation ────────────────────────────────────────────────────────────
-  // The first player seeds the server with an initial state that already
-  // includes themselves as "X".  startRoom returns the generated roomId.
   const handleCreate = async () => {
     const name = playerName || "Player 1";
     setMyMark("X");
@@ -118,45 +225,26 @@ export function TicTacToe() {
     });
   };
 
-  // ── Room joining ─────────────────────────────────────────────────────────────
-  // joinRoom just sets the roomId; the polling useEffect in useGameRoom kicks
-  // off immediately, and the auto-registration effect above handles the rest.
   const handleJoin = () => {
     const code = joinCode.trim().toUpperCase();
-    if (!code) {
-      setJoinError("Please enter a room code.");
-      return;
-    }
+    if (!code) { setJoinError("Please enter a room code."); return; }
     setJoinError("");
     joinRoom(code);
   };
 
-  // ── Making a move ────────────────────────────────────────────────────────────
-  // Only the player whose mark matches the current turn may write.
-  // We compute the entire next state locally and push it as one atomic snapshot.
   const handlePlay = async (index) => {
     if (!gameReady || gameOver || cells[index] || turn !== myMark) return;
-
     const next = [...cells];
     next[index] = turn;
-
-    // Determine outcome after this move.
     const nextWinner = getWinner(next);
     const nextDraw = !nextWinner && next.every((c) => c !== null);
-
-    // Update the running score if the game just ended.
     const nextScore = { ...score };
     if (nextWinner === "X") nextScore.x += 1;
     else if (nextWinner === "O") nextScore.o += 1;
     else if (nextDraw) nextScore.draws += 1;
-
-    // Push the new snapshot to the server.
-    // The version field is incremented inside pushState (see useGameRoom.js).
     await pushState({
       ...gameState,
       cells: next,
-      // Keep the current turn marker after the game ends so both sides know
-      // who made the final move; otherwise switch to the next player.
       turn: nextWinner || nextDraw ? turn : turn === "X" ? "O" : "X",
       winner: nextWinner,
       isDraw: nextDraw,
@@ -164,53 +252,35 @@ export function TicTacToe() {
     });
   };
 
-  // ── Reset helpers ────────────────────────────────────────────────────────────
-  // Clear the board for a rematch while keeping the running score.
   const handleReset = async () => {
     if (!gameReady) return;
-    await pushState({
-      ...gameState,
-      cells: Array(9).fill(null),
-      turn: "X",
-      winner: null,
-      isDraw: false,
-    });
+    await pushState({ ...gameState, cells: Array(9).fill(null), turn: "X", winner: null, isDraw: false });
   };
 
-  // Clear the board AND the scoreboard.
   const handleResetScores = async () => {
     if (!gameReady) return;
-    await pushState({
-      ...gameState,
-      cells: Array(9).fill(null),
-      turn: "X",
-      winner: null,
-      isDraw: false,
-      score: { x: 0, o: 0, draws: 0 },
-    });
+    await pushState({ ...gameState, cells: Array(9).fill(null), turn: "X", winner: null, isDraw: false, score: { x: 0, o: 0, draws: 0 } });
   };
 
-  // ── Status message shown above the board ────────────────────────────────────
-  let status = "";
+  let multiStatus = "";
   if (!roomId) {
-    status = "Create or join a room to start.";
+    multiStatus = "Create or join a room to start.";
   } else if (!gameReady) {
-    status = `Waiting for opponent… share code: ${roomId}`;
+    multiStatus = `Waiting for opponent… share code: ${roomId}`;
   } else if (winner) {
-    const winnerPlayer = players.find((p) => p.mark === winner);
-    status = myMark === winner ? "You win! 🎉" : `${winnerPlayer?.name ?? winner} wins!`;
+    const wp = players.find((p) => p.mark === winner);
+    multiStatus = myMark === winner ? "You win! 🎉" : `${wp?.name ?? winner} wins!`;
   } else if (isDraw) {
-    status = "Draw game!";
+    multiStatus = "Draw game!";
   } else if (turn === myMark) {
-    status = "Your turn";
+    multiStatus = "Your turn";
   } else {
-    const opponent = players.find((p) => p.mark !== myMark);
-    status = `${opponent?.name ?? "Opponent"}'s turn…`;
+    const opp = players.find((p) => p.mark !== myMark);
+    multiStatus = `${opp?.name ?? "Opponent"}'s turn…`;
   }
 
-  // ── LOBBY SCREEN ─────────────────────────────────────────────────────────────
-  // Shown before a room has been created or joined.
-  if (!roomId) {
+  // ── LOBBY ─────────────────────────────────────────────────────────────────
+  if (!mode) {
     return (
       <article className="game-page ttt-page" data-testid="ttt-page">
         <header className="game-page-header">
@@ -222,18 +292,26 @@ export function TicTacToe() {
 
         <div className="ttt-panel">
           <div className="ttt-lobby">
-            {/* Option A: start a fresh game and receive a shareable room code */}
+            {/* Single-player vs minimax AI — no network required */}
             <button
-              className="btn btn-primary"
-              onClick={handleCreate}
+              className="btn btn-primary ttt-lobby-wide"
+              onClick={() => setMode("computer")}
+            >
+              🤖 Play vs Computer
+            </button>
+
+            <p className="ttt-lobby-or">— or play online —</p>
+
+            {/* Multiplayer: start a new room */}
+            <button
+              className="btn btn-primary ttt-lobby-wide"
+              onClick={() => { setMode("multi"); handleCreate(); }}
               disabled={isLoading}
             >
               {isLoading ? "Creating…" : "Create Room"}
             </button>
 
-            <p className="ttt-lobby-or">— or —</p>
-
-            {/* Option B: enter a code shared by the other player */}
+            {/* Multiplayer: join an existing room */}
             <div className="ttt-lobby-join">
               <input
                 className="ttt-room-input"
@@ -241,11 +319,14 @@ export function TicTacToe() {
                 placeholder="Room code"
                 value={joinCode}
                 onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                onKeyDown={(e) => e.key === "Enter" && handleJoin()}
+                onKeyDown={(e) => e.key === "Enter" && (setMode("multi"), handleJoin())}
                 aria-label="Room code"
                 maxLength={10}
               />
-              <button className="btn btn-primary" onClick={handleJoin}>
+              <button
+                className="btn btn-primary"
+                onClick={() => { setMode("multi"); handleJoin(); }}
+              >
                 Join Room
               </button>
             </div>
@@ -258,8 +339,78 @@ export function TicTacToe() {
     );
   }
 
-  // ── GAME SCREEN ──────────────────────────────────────────────────────────────
-  // Shown once a roomId exists (whether waiting for opponent or mid-game).
+  // ── COMPUTER MODE GAME SCREEN ──────────────────────────────────────────────
+  if (mode === "computer") {
+    let cpuStatus = "";
+    if (cpuWinner === "X") cpuStatus = "You win! 🎉";
+    else if (cpuWinner === "O") cpuStatus = "Computer wins!";
+    else if (cpuDraw) cpuStatus = "Draw game!";
+    else if (cpuThinking) cpuStatus = "Computer is thinking…";
+    else cpuStatus = "Your turn";
+
+    return (
+      <article className="game-page ttt-page" data-testid="ttt-page">
+        <header className="game-page-header">
+          <h1 className="game-page-title">Tic Tac Toe</h1>
+          <p className="game-page-player" data-testid="ttt-player-label">
+            {playerName ? `${playerName} (X) vs Computer (O)` : "You (X) vs Computer (O)"}
+          </p>
+        </header>
+
+        <div className="ttt-panel">
+          <div className="ttt-scoreboard" data-testid="ttt-scoreboard">
+            <div className="ttt-score-item">
+              <span className="ttt-score-label">You (X)</span>
+              <strong className="ttt-score-value" data-testid="ttt-score-x">{cpuScore.x}</strong>
+            </div>
+            <div className="ttt-score-item">
+              <span className="ttt-score-label">Draws</span>
+              <strong className="ttt-score-value" data-testid="ttt-score-draws">{cpuScore.draws}</strong>
+            </div>
+            <div className="ttt-score-item">
+              <span className="ttt-score-label">Computer</span>
+              <strong className="ttt-score-value" data-testid="ttt-score-o">{cpuScore.o}</strong>
+            </div>
+          </div>
+
+          <p className="ttt-status" data-testid="ttt-status">{cpuStatus}</p>
+
+          <div className="ttt-grid" role="grid" aria-label="Tic Tac Toe board">
+            {cpuCells.map((cell, index) => (
+              <button
+                key={index}
+                type="button"
+                className="ttt-cell"
+                onClick={() => handleCpuPlay(index)}
+                disabled={cpuOver || cpuCells[index] !== null || cpuTurn !== "X" || cpuThinking}
+                data-testid={`ttt-cell-${index}`}
+                aria-label={`Cell ${index + 1}${cell ? `, ${cell}` : ""}`}
+              >
+                {cell ?? ""}
+              </button>
+            ))}
+          </div>
+
+          <div className="ttt-actions">
+            {cpuOver && (
+              <button type="button" className="btn btn-ghost" onClick={handleCpuReset} data-testid="ttt-reset">
+                Restart match
+              </button>
+            )}
+            <button type="button" className="btn btn-ghost" onClick={handleCpuResetScores} data-testid="ttt-reset-scores">
+              Reset scores
+            </button>
+            {/* Let the player switch back to the lobby to change mode */}
+            <button type="button" className="btn btn-ghost" onClick={() => { setMode(null); handleCpuResetScores(); }}>
+              Change mode
+            </button>
+          </div>
+        </div>
+      </article>
+    );
+  }
+
+  // ── MULTIPLAYER GAME SCREEN ────────────────────────────────────────────────
   return (
     <article className="game-page ttt-page" data-testid="ttt-page">
       <header className="game-page-header">
@@ -269,41 +420,29 @@ export function TicTacToe() {
             ? `${playerName} — you are ${myMark ?? "…"}`
             : `You are ${myMark ?? "…"}`}
         </p>
-        {/* Display the room code so the creator can share it with their opponent */}
         <p className="ttt-room-code">
           Room: <code>{roomId}</code>
         </p>
       </header>
 
       <div className="ttt-panel">
-        {/* Running score — survives across rematches */}
         <div className="ttt-scoreboard" data-testid="ttt-scoreboard">
           <div className="ttt-score-item">
             <span className="ttt-score-label">X wins</span>
-            <strong className="ttt-score-value" data-testid="ttt-score-x">
-              {score.x}
-            </strong>
+            <strong className="ttt-score-value" data-testid="ttt-score-x">{score.x}</strong>
           </div>
           <div className="ttt-score-item">
             <span className="ttt-score-label">Draws</span>
-            <strong className="ttt-score-value" data-testid="ttt-score-draws">
-              {score.draws}
-            </strong>
+            <strong className="ttt-score-value" data-testid="ttt-score-draws">{score.draws}</strong>
           </div>
           <div className="ttt-score-item">
             <span className="ttt-score-label">O wins</span>
-            <strong className="ttt-score-value" data-testid="ttt-score-o">
-              {score.o}
-            </strong>
+            <strong className="ttt-score-value" data-testid="ttt-score-o">{score.o}</strong>
           </div>
         </div>
 
-        {/* Single line of contextual feedback for both players */}
-        <p className="ttt-status" data-testid="ttt-status">
-          {status}
-        </p>
+        <p className="ttt-status" data-testid="ttt-status">{multiStatus}</p>
 
-        {/* 3×3 board — cells are disabled when it is not this player's turn */}
         <div className="ttt-grid" role="grid" aria-label="Tic Tac Toe board">
           {cells.map((cell, index) => (
             <button
@@ -311,14 +450,7 @@ export function TicTacToe() {
               type="button"
               className="ttt-cell"
               onClick={() => handlePlay(index)}
-              // Disable the cell if: game not ready, game over, already occupied,
-              // or it is the opponent's turn — prevents illegal moves client-side.
-              disabled={
-                !gameReady ||
-                gameOver ||
-                cells[index] !== null ||
-                turn !== myMark
-              }
+              disabled={!gameReady || gameOver || cells[index] !== null || turn !== myMark}
               data-testid={`ttt-cell-${index}`}
               aria-label={`Cell ${index + 1}${cell ? `, ${cell}` : ""}`}
             >
@@ -328,24 +460,16 @@ export function TicTacToe() {
         </div>
 
         <div className="ttt-actions">
-          {/* Rematch button — only appears once the round has ended */}
           {gameOver && gameReady && (
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={handleReset}
-              data-testid="ttt-reset"
-            >
+            <button type="button" className="btn btn-ghost" onClick={handleReset} data-testid="ttt-reset">
               Restart match
             </button>
           )}
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={handleResetScores}
-            data-testid="ttt-reset-scores"
-          >
+          <button type="button" className="btn btn-ghost" onClick={handleResetScores} data-testid="ttt-reset-scores">
             Reset scores
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={() => setMode(null)}>
+            Change mode
           </button>
         </div>
 

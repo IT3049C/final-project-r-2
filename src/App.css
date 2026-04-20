@@ -917,6 +917,10 @@
   font-size: 0.85rem;
 }
 
+.ttt-lobby-wide {
+  width: 100%;
+}
+
 .ttt-lobby-join {
   display: flex;
   gap: 0.5rem;
