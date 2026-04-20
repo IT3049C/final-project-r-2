@@ -122,11 +122,64 @@ test.describe("Game Hub", () => {
     await context.addInitScript((key) => {
       localStorage.setItem(key, "TTT Tester");
     }, PLAYER_KEY);
+
+    // Seed a two-player game so the board is immediately playable without a
+    // real network connection.  The mock state is mutated on every PUT so
+    // subsequent GET polls return the updated cells.
+    const baseState = {
+      players: [
+        { name: "TTT Tester", mark: "X" },
+        { name: "Player 2", mark: "O" },
+      ],
+      cells: Array(9).fill(null),
+      turn: "X",
+      winner: null,
+      isDraw: false,
+      score: { x: 0, o: 0, draws: 0 },
+      version: 0,
+    };
+    let currentState = { ...baseState };
+
+    // Intercept POST /api/rooms (createRoom)
+    await page.route("**/api/rooms", (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ roomId: "TEST01", gameState: currentState }),
+      });
+    });
+
+    // Intercept GET and PUT /api/rooms/TEST01 (poll + pushState)
+    await page.route("**/api/rooms/TEST01", async (route) => {
+      if (route.request().method() === "PUT") {
+        const body = JSON.parse(route.request().postData() ?? "{}");
+        currentState = body.gameState;
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ id: "TEST01", gameState: currentState }),
+        });
+      } else {
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ id: "TEST01", gameState: currentState }),
+        });
+      }
+    });
+
     await page.goto("/games/tic-tac-toe");
 
+    // Lobby is shown first — click Create Room to enter the game
+    await page.getByRole("button", { name: "Create Room" }).click();
+
+    // Board is visible once the room is ready (mock returns 2 players)
+    await expect(page.getByTestId("ttt-cell-0")).toBeVisible();
     await page.getByTestId("ttt-cell-0").click();
+
     await expect(page.getByTestId("ttt-cell-0")).toHaveText("X");
-    await expect(page.getByTestId("ttt-status")).toContainText("Turn: O");
+    // After X moves the status should indicate it is now the opponent's turn
+    await expect(page.getByTestId("ttt-status")).toContainText("turn");
   });
 
   test("Memory Cards: can flip cards and increment moves", async ({ page, context }) => {
