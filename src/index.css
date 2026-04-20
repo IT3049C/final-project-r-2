@@ -1,6 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap");
 
 :root {
+  /* ── Dark theme (default) ── */
   --bg-deep: #0c0f14;
   --bg-elevated: #141a24;
   --bg-card: #1a2230;
@@ -24,6 +25,24 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ── Light theme ── applied when <html data-theme="light"> */
+[data-theme="light"] {
+  --bg-deep: #f0f4ff;
+  --bg-elevated: #ffffff;
+  --bg-card: #e8eeff;
+  --border: rgba(80, 100, 200, 0.2);
+  --text: #0f172a;
+  --text-muted: #475569;
+  --accent: #3b5bdb;
+  --accent-bright: #2f4acf;
+  --accent-glow: rgba(59, 91, 219, 0.25);
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+  background-color: var(--bg-deep);
+  color: var(--text);
+}
+
 *,
 *::before,
 *::after {
@@ -35,6 +54,11 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background: radial-gradient(ellipse 120% 80% at 50% -20%, #1e2a4a 0%, var(--bg-deep) 55%);
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+[data-theme="light"] body {
+  background: radial-gradient(ellipse 120% 80% at 50% -20%, #c7d4ff 0%, var(--bg-deep) 55%);
 }
 
 #root {
