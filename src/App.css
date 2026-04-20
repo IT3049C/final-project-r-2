@@ -760,6 +760,70 @@
   gap: 0.65rem;
 }
 
+/* Lobby — shown before a room is created or joined */
+.ttt-lobby {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: min(100%, 340px);
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-card);
+}
+
+.ttt-lobby-or {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.ttt-lobby-join {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+/* Text input for entering a room code */
+.ttt-room-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ttt-room-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Small label showing the active room code above the board */
+.ttt-room-code {
+  margin: 0.25rem 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.ttt-room-code code {
+  color: var(--accent-bright);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+/* Inline error messages */
+.ttt-error {
+  margin: 0;
+  color: var(--error, #f87171);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
 .memory-page .game-page-header {
   text-align: center;
 }
