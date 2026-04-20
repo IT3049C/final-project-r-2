@@ -224,7 +224,7 @@ export function RockPaperScissorsMultiplayer() {
         <div className="rps-mp-lobby">
           <p className="rps-mp-intro">
             Create a room and share the code, or enter a friend&apos;s code to join. The game state
-            syncs via the class Game Room API (polling ~1s).
+            syncs via the Game Room API (polling ~1s).
           </p>
           <div className="rps-mp-actions">
             <button

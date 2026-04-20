@@ -43,3 +43,7 @@ export async function apiUpdateRoom(roomId, gameState) {
   }
   return res.json();
 }
+
+export const createRoom = apiCreateRoom;
+export const getRoom = apiGetRoom;
+export const updateRoom = apiUpdateRoom;
