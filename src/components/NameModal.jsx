@@ -32,7 +32,8 @@ export function NameModal() {
           Welcome to Game Hub
         </h2>
         <p className="name-modal-hint">
-          Enter your player name once. It will show on every game screen.
+          Enter your player name once. It will show on every game screen. You can see the game cards
+          dimmed behind this window—after you continue, you’ll choose one to play.
         </p>
         <form onSubmit={handleSubmit} className="name-modal-form">
           <label htmlFor="player-name-input" className="sr-only">

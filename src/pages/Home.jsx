@@ -49,7 +49,8 @@ export function Home() {
       <section className="hero">
         <h1 className="hero-title">Pick a game</h1>
         <p className="hero-sub">
-          One hub, one look, two quick challenges. Your name stays with you everywhere.
+          Five mini games in one place. Enter your name once (you’ll be prompted), then pick a card
+          below. Your name follows you on every screen.
         </p>
       </section>
 

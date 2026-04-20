@@ -94,8 +94,9 @@
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: rgba(5, 8, 14, 0.72);
-  backdrop-filter: blur(6px);
+  /* Lighter overlay so first-time visitors still see the game grid behind the dialog */
+  background: rgba(5, 8, 14, 0.48);
+  backdrop-filter: blur(4px);
 }
 
 .name-modal-card {
@@ -301,6 +302,143 @@
   margin: 0;
   color: var(--text-muted);
   font-size: 0.95rem;
+}
+
+.rps-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.rps-mode-btn {
+  padding: 0.45rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.rps-mode-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+}
+
+.rps-mode-btn--active {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: rgba(108, 140, 255, 0.12);
+}
+
+.rps-board--hidden {
+  display: none;
+}
+
+.rps-mp {
+  margin-bottom: 1.5rem;
+  max-width: 560px;
+}
+
+.rps-mp-lobby,
+.rps-mp-game {
+  padding: 1.5rem;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.rps-mp-intro {
+  margin: 0 0 1rem;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.rps-mp-actions {
+  margin-bottom: 1.25rem;
+}
+
+.rps-mp-join {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rps-mp-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.rps-mp-join-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.rps-mp-input {
+  flex: 1;
+  min-width: 140px;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-deep);
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.rps-mp-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.rps-mp-error {
+  margin: 1rem 0 0;
+  font-size: 0.9rem;
+  color: var(--danger);
+}
+
+.rps-mp-roombar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.rps-mp-roomline {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
+.rps-mp-code {
+  margin: 0 0.35rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  background: var(--bg-deep);
+  color: var(--accent-bright);
+  font-size: 1.05rem;
+  letter-spacing: 0.06em;
+}
+
+.rps-mp-copy {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.85rem;
+}
+
+.rps-mp-scores {
+  margin-bottom: 1rem;
 }
 
 .rps-board {

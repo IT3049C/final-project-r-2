@@ -1,44 +1,49 @@
-// Base URL for the Game Room API hosted by Prof. Yahya Gilany.
-// All game state is stored as arbitrary JSON, so this same file can be
-// reused for any multiplayer game (Connect Four, Battleship, Word Guess, …).
 const BASE = "https://game-room-api.fly.dev";
 
 /**
- * Create a brand-new room and seed it with `initialState`.
- * Returns { roomId, gameState } — share roomId with opponents.
+ * @param {unknown} initialState
+ * @returns {Promise<{ roomId: string; gameState: unknown }>}
  */
-export async function createRoom(initialState) {
+export async function apiCreateRoom(initialState) {
   const res = await fetch(`${BASE}/api/rooms`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ initialState }),
   });
-  if (!res.ok) throw new Error("Failed to create room");
-  return res.json(); // { roomId: string, gameState: object }
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(t || "Failed to create room");
+  }
+  return res.json();
 }
 
 /**
- * Read the current state of a room by its code.
- * Returns { id, createdAt, gameState }.
- * Called repeatedly by the polling loop so all clients stay in sync.
+ * @param {string} roomId
+ * @returns {Promise<{ id: string; gameState: unknown; createdAt?: string }>}
  */
-export async function getRoom(roomId) {
-  const res = await fetch(`${BASE}/api/rooms/${roomId}`);
+export async function apiGetRoom(roomId) {
+  const res = await fetch(`${BASE}/api/rooms/${encodeURIComponent(roomId)}`);
   if (!res.ok) throw new Error("Room not found");
-  return res.json(); // { id, createdAt, gameState }
+  return res.json();
 }
 
 /**
- * Overwrite the room's game state with a new snapshot.
- * Returns the updated room object (including the new gameState).
- * Only the player whose turn it is should call this, which prevents most conflicts.
+ * @param {string} roomId
+ * @param {unknown} gameState
  */
-export async function updateRoom(roomId, gameState) {
-  const res = await fetch(`${BASE}/api/rooms/${roomId}`, {
+export async function apiUpdateRoom(roomId, gameState) {
+  const res = await fetch(`${BASE}/api/rooms/${encodeURIComponent(roomId)}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ gameState }),
   });
-  if (!res.ok) throw new Error("Failed to update room");
-  return res.json(); // updated room
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(t || "Failed to update room");
+  }
+  return res.json();
 }
+
+export const createRoom = apiCreateRoom;
+export const getRoom = apiGetRoom;
+export const updateRoom = apiUpdateRoom;
