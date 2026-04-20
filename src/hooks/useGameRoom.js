@@ -18,6 +18,7 @@ export function useGameRoom(options = {}) {
   useEffect(() => {
     if (!roomId) {
       setGameState(null);
+      setError(null);
       if (pollRef.current) window.clearInterval(pollRef.current);
       return;
     }
