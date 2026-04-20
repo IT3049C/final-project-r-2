@@ -1,10 +1,12 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { usePlayer } from "../context/PlayerContext.jsx";
+import { useTheme } from "../hooks/useTheme.js";
 
 export function Layout() {
   const { playerName } = usePlayer();
   const location = useLocation();
   const isHome = location.pathname === "/";
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <div className="app-shell">
@@ -32,6 +34,15 @@ export function Layout() {
               Player: …
             </p>
           )}
+          {/* Light / dark mode toggle */}
+          <button
+            className="theme-toggle"
+            onClick={toggleTheme}
+            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+            title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          >
+            {theme === "dark" ? "☀️" : "🌙"}
+          </button>
         </div>
       </header>
       <main className="app-main">

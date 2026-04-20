@@ -12,6 +12,11 @@
   border-bottom: 1px solid var(--border);
   background: rgba(12, 15, 20, 0.85);
   backdrop-filter: blur(12px);
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+[data-theme="light"] .app-header {
+  background: rgba(240, 244, 255, 0.88);
 }
 
 .app-header-inner {
@@ -75,6 +80,28 @@
 
 .player-greeting--pending {
   opacity: 0.7;
+}
+
+/* Light / dark mode toggle button in the header */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--text);
+  flex-shrink: 0;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent);
+  background: rgba(108, 140, 255, 0.1);
 }
 
 .app-main {
