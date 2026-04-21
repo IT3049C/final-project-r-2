@@ -1,25 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { usePlayer } from "../context/PlayerContext.jsx";
 
-/** Used only if `public/wordle-*.txt` fails to load (offline build preview, etc.). */
 const FALLBACK_WORDS = ["react", "vivid", "coder", "input", "route", "state", "hooks", "pixel"];
-const FALLBACK_VALID_GUESSES = new Set([
-  ...FALLBACK_WORDS,
-  "audio",
-  "adieu",
-  "table",
-  "crane",
-  "stone",
-  "light",
-  "world",
-  "smile",
-  "grape",
-  "train",
-  "brand",
-  "sugar",
-]);
 
-/** Vite `BASE_URL` is a path like `/` or `/repo/` — do not pass it alone to `new URL()` as a base (invalid in the browser). */
 const WORDS_URL = `${import.meta.env.BASE_URL}wordle-words.txt`;
 const ANSWERS_URL = `${import.meta.env.BASE_URL}wordle-answers.txt`;
 
@@ -68,7 +51,6 @@ function parseWordLines(text) {
 
 export function Wordle() {
   const { playerName } = usePlayer();
-  const [allowedList, setAllowedList] = useState(null);
   const [answerList, setAnswerList] = useState(null);
   const [answer, setAnswer] = useState(() => randomFrom(FALLBACK_WORDS));
   const [guesses, setGuesses] = useState([]);
@@ -77,7 +59,6 @@ export function Wordle() {
   const [revealingRow, setRevealingRow] = useState(-1);
   const [shakeRow, setShakeRow] = useState(-1);
   const [isRevealing, setIsRevealing] = useState(false);
-  const [isChecking, setIsChecking] = useState(false);
   const revealTimerRef = useRef(null);
   const shakeTimerRef = useRef(null);
 
@@ -103,12 +84,9 @@ export function Wordle() {
         const allowed = parseWordLines(wText);
         const answers = parseWordLines(aText);
 
-        if (allowed.length > 0) {
-          setAllowedList(allowed);
-        }
-        if (answers.length > 0) {
-          setAnswerList(answers);
-        }
+        // Merge both lists so all answer words are also valid guesses
+        const combined = [...new Set([...allowed, ...answers])];
+        if (combined.length > 0) setAnswerList(combined);
       } catch {
         /* keep bundled fallbacks */
       }
@@ -118,20 +96,6 @@ export function Wordle() {
     return () => controller.abort();
   }, []);
 
-  const validGuesses = useMemo(() => {
-    const merged = new Set(FALLBACK_VALID_GUESSES);
-    if (allowedList) {
-      for (const word of allowedList) merged.add(word);
-    }
-    // Answer words must also be accepted as valid guesses — without this,
-    // words that only appear in wordle-answers.txt (e.g. "adore") are
-    // incorrectly rejected with "Word not in dictionary."
-    if (answerList) {
-      for (const word of answerList) merged.add(word);
-    }
-    return merged;
-  }, [allowedList, answerList]);
-
   const answerPool = useMemo(
     () => (answerList && answerList.length > 0 ? answerList : FALLBACK_WORDS),
     [answerList],
@@ -139,9 +103,7 @@ export function Wordle() {
 
   useEffect(() => {
     if (!answerList || answerList.length === 0) return;
-    setAnswer((prev) =>
-      answerList.includes(prev) ? prev : randomFrom(answerList),
-    );
+    setAnswer((prev) => (answerList.includes(prev) ? prev : randomFrom(answerList)));
   }, [answerList]);
 
   const won = guesses.some((g) => g.word === answer);
@@ -170,9 +132,9 @@ export function Wordle() {
     shakeTimerRef.current = setTimeout(() => setShakeRow(-1), SHAKE_MS);
   };
 
-  const submitGuess = async (e) => {
+  const submitGuess = (e) => {
     e.preventDefault();
-    if (gameOver || isRevealing || isChecking) return;
+    if (gameOver || isRevealing) return;
 
     const guess = current.toLowerCase().trim();
     if (guess.length !== WORD_LEN) {
@@ -183,27 +145,6 @@ export function Wordle() {
     if (!/^[a-z]+$/.test(guess)) {
       showInvalidGuess("Only letters are allowed.");
       return;
-    }
-
-    if (!validGuesses.has(guess)) {
-      // Fall back to a live dictionary API so real words not in the local
-      // word lists (e.g. "alive") are still accepted.
-      setIsChecking(true);
-      try {
-        const res = await fetch(
-          `https://api.dictionaryapi.dev/api/v2/entries/en/${guess}`,
-          { signal: AbortSignal.timeout(4000) }
-        );
-        if (!res.ok) {
-          setIsChecking(false);
-          showInvalidGuess("Word not in dictionary.");
-          return;
-        }
-      } catch {
-        // Network error — fall back to permissive (accept the word)
-      } finally {
-        setIsChecking(false);
-      }
     }
 
     const rowIndex = guesses.length;
@@ -229,7 +170,6 @@ export function Wordle() {
     setRevealingRow(-1);
     setShakeRow(-1);
     setIsRevealing(false);
-    setIsChecking(false);
   };
 
   return (
@@ -244,7 +184,7 @@ export function Wordle() {
       <div className="wordle-panel">
         <p className="wordle-rules">
           Guess the five-letter word in {MAX_GUESSES} tries. Green is correct, amber is in the word
-          but wrong position. Guesses may be any common English five-letter word in the dictionary.
+          but wrong position. Guesses may be any five-letter combination of letters.
         </p>
 
         <div className="wordle-grid" aria-label="Wordle board" data-testid="wordle-grid">
@@ -278,7 +218,7 @@ export function Wordle() {
             type="text"
             value={current}
             onChange={(e) => setCurrent(e.target.value.slice(0, WORD_LEN))}
-            disabled={gameOver || isRevealing || isChecking}
+            disabled={gameOver || isRevealing}
             placeholder="Type 5 letters"
             aria-label="Word guess"
             data-testid="wordle-input"
@@ -286,10 +226,10 @@ export function Wordle() {
           <button
             type="submit"
             className="btn btn-primary"
-            disabled={gameOver || isRevealing || isChecking}
+            disabled={gameOver || isRevealing}
             data-testid="wordle-submit"
           >
-            {isChecking ? "Checking…" : "Submit guess"}
+            Submit guess
           </button>
           <button type="button" className="btn btn-ghost" onClick={reset} data-testid="wordle-reset">
             New word
@@ -315,3 +255,4 @@ export function Wordle() {
     </article>
   );
 }
+
