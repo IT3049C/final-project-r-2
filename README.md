@@ -13,7 +13,7 @@
 <!--- Update the following line with your self-grade --->
 <!--- Check the Rubric on Canvas for a guideline --->
 
-I should get **( )** out of 20 on this assignment.
+I should get **( 20 )** out of 20 on this assignment.
 
 ## Short reflection
 
@@ -27,16 +27,16 @@ I should get **( )** out of 20 on this assignment.
 
 - **How long it took me to finish this?**
 <!-- Answer below this line -->
--
+- About 5 days 
 
 - **What do you think of this completion time?**
 <!-- Answer below this line -->
-- 
+- I think it's pretty good based on the pace of the course being was taught
 
 - **In hindsight, what would you do differently?**
 - <!-- Answer below this line -->
-- 
+- We would add more focused tests per game, run a structured accessibility pass (keyboard paths, contrast, labels), and consider small UX polish like local high scores or clearer win/loss feedback where it helps learning goals.
 
 - **What resources did you use?**
 - <!-- Answer below this line -->
-- 
+- We used canvas modules, course video and used cursor to help us complete this final 
