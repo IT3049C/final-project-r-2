@@ -77,6 +77,7 @@ export function Wordle() {
   const [revealingRow, setRevealingRow] = useState(-1);
   const [shakeRow, setShakeRow] = useState(-1);
   const [isRevealing, setIsRevealing] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
   const revealTimerRef = useRef(null);
   const shakeTimerRef = useRef(null);
 
@@ -169,9 +170,9 @@ export function Wordle() {
     shakeTimerRef.current = setTimeout(() => setShakeRow(-1), SHAKE_MS);
   };
 
-  const submitGuess = (e) => {
+  const submitGuess = async (e) => {
     e.preventDefault();
-    if (gameOver || isRevealing) return;
+    if (gameOver || isRevealing || isChecking) return;
 
     const guess = current.toLowerCase().trim();
     if (guess.length !== WORD_LEN) {
@@ -185,8 +186,24 @@ export function Wordle() {
     }
 
     if (!validGuesses.has(guess)) {
-      showInvalidGuess("Word not in dictionary.");
-      return;
+      // Fall back to a live dictionary API so real words not in the local
+      // word lists (e.g. "alive") are still accepted.
+      setIsChecking(true);
+      try {
+        const res = await fetch(
+          `https://api.dictionaryapi.dev/api/v2/entries/en/${guess}`,
+          { signal: AbortSignal.timeout(4000) }
+        );
+        if (!res.ok) {
+          setIsChecking(false);
+          showInvalidGuess("Word not in dictionary.");
+          return;
+        }
+      } catch {
+        // Network error — fall back to permissive (accept the word)
+      } finally {
+        setIsChecking(false);
+      }
     }
 
     const rowIndex = guesses.length;
@@ -212,6 +229,7 @@ export function Wordle() {
     setRevealingRow(-1);
     setShakeRow(-1);
     setIsRevealing(false);
+    setIsChecking(false);
   };
 
   return (
@@ -260,7 +278,7 @@ export function Wordle() {
             type="text"
             value={current}
             onChange={(e) => setCurrent(e.target.value.slice(0, WORD_LEN))}
-            disabled={gameOver || isRevealing}
+            disabled={gameOver || isRevealing || isChecking}
             placeholder="Type 5 letters"
             aria-label="Word guess"
             data-testid="wordle-input"
@@ -268,10 +286,10 @@ export function Wordle() {
           <button
             type="submit"
             className="btn btn-primary"
-            disabled={gameOver || isRevealing}
+            disabled={gameOver || isRevealing || isChecking}
             data-testid="wordle-submit"
           >
-            Submit guess
+            {isChecking ? "Checking…" : "Submit guess"}
           </button>
           <button type="button" className="btn btn-ghost" onClick={reset} data-testid="wordle-reset">
             New word
