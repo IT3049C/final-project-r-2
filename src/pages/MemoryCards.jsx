@@ -4,7 +4,7 @@ import { usePlayer } from "../context/PlayerContext.jsx";
 // These are the 6 symbols used in the game.
 // Each symbol appears on exactly 2 cards, making 12 cards total (6 pairs).
 // To add more pairs, just add more icons to this list.
-const ICONS = ["ðŸŽ", "ðŸš€", "ðŸŽ§", "ðŸŒŸ", "âš½", "ðŸŽ²"];
+const ICONS = ["🎁", "🚀", "🎧", "🌟", "⚽", "🎲"];
 
 // makeDeck â€” creates a brand new set of 12 shuffled cards.
 // It takes each icon and makes two copies of it (a pair).
