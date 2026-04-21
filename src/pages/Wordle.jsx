@@ -122,8 +122,14 @@ export function Wordle() {
     if (allowedList) {
       for (const word of allowedList) merged.add(word);
     }
+    // Answer words must also be accepted as valid guesses — without this,
+    // words that only appear in wordle-answers.txt (e.g. "adore") are
+    // incorrectly rejected with "Word not in dictionary."
+    if (answerList) {
+      for (const word of answerList) merged.add(word);
+    }
     return merged;
-  }, [allowedList]);
+  }, [allowedList, answerList]);
 
   const answerPool = useMemo(
     () => (answerList && answerList.length > 0 ? answerList : FALLBACK_WORDS),
