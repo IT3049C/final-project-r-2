@@ -43,6 +43,12 @@ jobs:
         run: npm install
       - name: Build
         run: npm run build -- --base=/$REPO_NAME
+      # GitHub Pages has no SPA rewrites; deep links / reloads must get this file or they 404.
+      - name: SPA fallback (404.html)
+        run: |
+          cp dist/index.html dist/404.html
+          test -f dist/404.html
+          ls -la dist/*.html
       - name: Setup Pages
         uses: actions/configure-pages@v5.0.0
       - name: Upload artifact
