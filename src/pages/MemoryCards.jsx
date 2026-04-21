@@ -4,7 +4,7 @@ import { usePlayer } from "../context/PlayerContext.jsx";
 // These are the 6 symbols used in the game.
 // Each symbol appears on exactly 2 cards, making 12 cards total (6 pairs).
 // To add more pairs, just add more icons to this list.
-const ICONS = ["🎁", "🚀", "🎧", "🌟", "⚽", "🎲"];
+const ICONS = ["🎁", "🚀", "🎧", "🌟", "✝️", "🎲"];
 
 // makeDeck â€” creates a brand new set of 12 shuffled cards.
 // It takes each icon and makes two copies of it (a pair).
@@ -92,7 +92,7 @@ export function MemoryCards() {
       const second = deck.find((c) => c.id === secondId);
 
       if (first && second && first.icon === second.icon) {
-        // â”€â”€ Match! â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Match! ────────────────────────────────────────────────────────────────
         // Wait 280 ms so the player can see both icons, then permanently
         // reveal the pair by marking both cards as matched.
         setTimeout(() => {
@@ -107,7 +107,7 @@ export function MemoryCards() {
           setIsResolving(false);
         }, 280);
       } else {
-        // â”€â”€ No match â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── No match ───────────────────────────────────────────────────────────────
         // Wait 650 ms so the player can memorise the positions, then flip
         // both cards back face-down.
         setTimeout(() => {
